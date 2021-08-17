@@ -1,4 +1,4 @@
-# data_downloader
+# datademon
 
 This Go package is to be used for:
 - Downloading data files
