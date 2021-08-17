@@ -1,4 +1,4 @@
-# data-downloader
+# data_downloader
 
 This Go package is to be used for:
 - Downloading data files
