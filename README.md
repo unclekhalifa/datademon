@@ -13,7 +13,7 @@ Below are a list of (growing) supported formats:
 
 ## Contributing
 
-Please feel free to contribute by adding new templates to this project:
+Please feel free to contribute:
 
 1. Fork it
 2. Create your feature branch (`git checkout -b feature/fooBar`)
