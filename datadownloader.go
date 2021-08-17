@@ -1,4 +1,4 @@
-package datadownloader
+package datademon
 
 import (
 	"archive/zip"
