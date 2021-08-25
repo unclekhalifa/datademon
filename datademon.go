@@ -136,6 +136,7 @@ func DownloadZipFile(url string, filePath string) (bool, error) {
 
 func ParseCsv(records [][]string, skipHeader bool, callback func(int, []string) (bool, error)) []map[string]interface{} {
 	var errors []map[string]interface{}
+
 	for i, record := range records {
 		if i == 0 && skipHeader {
 			continue
