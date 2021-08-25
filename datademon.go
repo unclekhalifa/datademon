@@ -134,11 +134,19 @@ func DownloadZipFile(url string, filePath string) (bool, error) {
 	return true, nil
 }
 
-func ParseCsv(records [][]string, callback func(int, []string) bool) {
+func ParseCsv(records [][]string, callback func(int, []string) (bool, error)) []map[string]interface{} {
+	var errors []map[string]interface{}
 	for i, record := range records {
-		terminate := callback(i, record)
+		terminate, err := callback(i, record)
+		if err != nil {
+			errors = append(errors, map[string]interface{}{
+				"error":  err,
+				"record": record,
+			})
+		}
 		if terminate {
 			break
 		}
 	}
+	return errors
 }
