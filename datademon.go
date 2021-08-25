@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,68 +12,89 @@ import (
 )
 
 func Unzip(src string, dest string) ([]string, error) {
-	var filenames []string
+	var fileNames []string
 
-	r, err := zip.OpenReader(src)
+	reader, err := zip.OpenReader(src)
 	if err != nil {
-		return filenames, err
+		return nil, err
 	}
-	defer r.Close()
 
-	for _, f := range r.File {
+	defer func(reader *zip.ReadCloser) {
+		err = reader.Close()
+	}(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range reader.File {
 		fPath := filepath.Join(dest, f.Name)
 
 		if !strings.HasPrefix(fPath, filepath.Clean(dest)+string(os.PathSeparator)) {
-			return filenames, fmt.Errorf("%s: illegal file path", fPath)
+			return nil, fmt.Errorf("%s: illegal file path", fPath)
 		}
 
-		filenames = append(filenames, fPath)
+		fileNames = append(fileNames, fPath)
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(fPath, os.ModePerm)
+			err := os.MkdirAll(fPath, os.ModePerm)
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 
 		if err = os.MkdirAll(filepath.Dir(fPath), os.ModePerm); err != nil {
-			return filenames, err
+			return fileNames, err
 		}
 
 		outFile, err := os.OpenFile(fPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
-			return filenames, err
+			return nil, err
 		}
 
 		rc, err := f.Open()
 		if err != nil {
-			return filenames, err
+			return nil, err
 		}
 
 		_, err = io.Copy(outFile, rc)
-
-		outFile.Close()
-		rc.Close()
-
 		if err != nil {
-			return filenames, err
+			return nil, err
+		}
+
+		err = outFile.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		err = rc.Close()
+		if err != nil {
+			return nil, err
 		}
 	}
-	return filenames, nil
+	return fileNames, nil
 }
 
-func ReadCsvFile(file string) [][]string {
+func ReadCsvFile(file string) ([][]string, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		log.Fatal("Unable to read input file "+file, err)
+		return nil, err
 	}
-	defer f.Close()
+
+	defer func(f *os.File) {
+		err = f.Close()
+	}(f)
+	if err != nil {
+		return nil, err
+	}
 
 	csvReader := csv.NewReader(f)
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		log.Fatal("Unable to parse file as CSV for "+file, err)
+		return nil, err
 	}
 
-	return records
+	return records, nil
 }
 
 func DownloadZipFile(url string, filePath string) (bool, error) {
@@ -112,4 +132,13 @@ func DownloadZipFile(url string, filePath string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func ParseCsv(records [][]string, callback func(int, []string) bool) {
+	for i, record := range records {
+		terminate := callback(i, record)
+		if terminate {
+			break
+		}
+	}
 }
