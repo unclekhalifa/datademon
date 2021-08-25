@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,4 +75,41 @@ func ReadCsvFile(file string) [][]string {
 	}
 
 	return records
+}
+
+func DownloadZipFile(url string, filePath string) (bool, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return false, err
+	}
+
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+	}(resp.Body)
+	if err != nil {
+		return false, err
+	}
+
+	if resp.StatusCode != 200 {
+		return false, fmt.Errorf("could not download file: %x", resp.StatusCode)
+	}
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		return false, err
+	}
+
+	defer func(out *os.File) {
+		err = out.Close()
+	}(out)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
